@@ -301,15 +301,17 @@ class Optimize(object):
             # are only used locally for placement and have no impact on the upper weights
             # nor are they derived from the weights from below *HOWEVER* in case of a failure
             # the weights need to be as close as possible from the target weight to limit
-            # the negative impact
-            shift = int(id2weight[d.iloc[0]['~id~']] * min(0.01, abs(d.iloc[0]['~delta%~'])))
-            if shift <= 0:
-                log.info("stop because shift is zero")
-                break
-            log.debug("shift from " + str(d.iloc[0]['~id~']) +
-                      " to " + str(d.iloc[-1]['~id~']))
-            id2weight[d.iloc[0]['~id~']] -= shift
-            id2weight[d.iloc[-1]['~id~']] += shift
+            # the negative impact            
+            for i in range(int(len(d)/2)):
+                shift = min(int(id2weight[d.iloc[i]['~id~']] * abs(d.iloc[i]['~delta%~'])),
+                            int(id2weight[d.iloc[-(i+1)]['~id~']] * abs(d.iloc[-(i+1)]['~delta%~'])))
+                if (shift == 0):
+                    break
+                log.debug("shift from " + str(d.iloc[i]['~id~']) +
+                            " to " + str(d.iloc[-(i+1)]['~id~']))
+                id2weight[d.iloc[i]['~id~']] -= shift
+                id2weight[d.iloc[-(i+1)]['~id~']] += shift
+            
 
         choose_arg['weight_set'][choose_arg_position] = best_weights
         c.parse(crushmap)

@@ -233,11 +233,11 @@ class TestOptimize(object):
                              values_count=100, replication_count=2)
 
         self.verify_optimize([5, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-                             [0, -3, 0, 1, 0, 0, 0, 0, 0, 1, 1],
+                             [0, -1, 0, 0, 0, 0, 0, 0, 0, 1, 0],
                              values_count=100, replication_count=6)
 
         self.verify_optimize([1, 2, 3, 1, 2, 3, 1, 2, 3, 1],
-                             [0, 0, 0, 0, -1, 0, 0, 0, 1, 0, 0],
+                             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                              values_count=100, replication_count=6)
 
     def test_very_different_weights(self):
