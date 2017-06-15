@@ -292,7 +292,7 @@ class Optimize(object):
                     log.info("stopped because moved " + str(from_to_count) +
                              " --step " + str(self.args.step))
                     break
-            d = d.sort_values('~delta%~', ascending=False)
+            d = d.sort_values('~delta~', ascending=False)
             if d.iloc[0]['~delta~'] <= 0 or d.iloc[-1]['~delta~'] >= 0:
                 log.info("stop because [" + str(d.iloc[0]['~delta~']) + "," +
                          str(d.iloc[-1]['~delta~']) + "]")
@@ -302,19 +302,45 @@ class Optimize(object):
             # nor are they derived from the weights from below *HOWEVER* in case of a failure
             # the weights need to be as close as possible from the target weight to limit
             # the negative impact
-            i = 0
-            while( d.iloc[i]['~delta~'] > 0):
-                shift = min(int(id2weight[d.iloc[i]['~id~']] *  abs(d.iloc[i]['~delta%~'])),
-                            int(id2weight[d.iloc[-(i+1)]['~id~']] * abs(d.iloc[-(i+1)]['~delta%~'])))
-                if shift == 0:
-                    shift = max(int(id2weight[d.iloc[i]['~id~']] *  abs(d.iloc[i]['~delta%~'])),
-                                int(id2weight[d.iloc[-(i+1)]['~id~']] * abs(d.iloc[-(i+1)]['~delta%~'])))
-                log.debug("shift from " + str(d.iloc[0]['~id~']) +
-                          " to " + str(d.iloc[-1]['~id~']))
-                id2weight[d.iloc[i]['~id~']] -= shift
-                id2weight[d.iloc[-(i+1)]['~id~']] += shift
-                i += 1
-            
+            up = 0
+            down = len(d)-1
+            pos1 = 0
+            while d.iloc[pos1]['~delta~']>0:
+                pos1 += 1
+            pos2 = len(d)-1
+            while d.iloc[pos2]['~delta~']<0:
+                pos2 -= 1
+            if (pos1 == 0 or pos2 == len(d)-1):
+                if(pos1 == 0 and pos2 == len(d)-1):
+                    continue
+                else:
+                    print "This case should not occur"
+            if (pos1 > (len(d)-1-pos2)):
+                while up < pos1:
+                    shift1 = int(id2weight[d.iloc[up]['~id~']] *  abs(d.iloc[up]['~delta%~']))
+                    shift2 = int(id2weight[d.iloc[down]['~id~']] * abs(d.iloc[down]['~delta%~']))
+                    shift = min(shift1, shift2)
+                    log.debug("shift from " + str(d.iloc[0]['~id~']) +
+                              " to " + str(d.iloc[-1]['~id~']))
+                    id2weight[d.iloc[up]['~id~']] -= shift
+                    id2weight[d.iloc[down]['~id~']] += shift
+                    up += 1
+                    down -= 1
+                    if(down == pos2):
+                        down = len(d)-1
+            else:
+                while down > pos2:
+                    shift1 = int(id2weight[d.iloc[up]['~id~']] *  abs(d.iloc[up]['~delta%~']))
+                    shift2 = int(id2weight[d.iloc[down]['~id~']] * abs(d.iloc[down]['~delta%~']))
+                    shift = min(shift1, shift2)
+                    log.debug("shift from " + str(d.iloc[0]['~id~']) +
+                              " to " + str(d.iloc[-1]['~id~']))
+                    id2weight[d.iloc[up]['~id~']] -= shift
+                    id2weight[d.iloc[down]['~id~']] += shift
+                    up += 1
+                    down -= 1
+                    if(up == pos1):
+                        up = 0
 
         choose_arg['weight_set'][choose_arg_position] = best_weights
         c.parse(crushmap)
