@@ -292,7 +292,7 @@ class Optimize(object):
                     log.info("stopped because moved " + str(from_to_count) +
                              " --step " + str(self.args.step))
                     break
-            d = d.sort_values('~delta~', ascending=False)
+            d = d.sort_values('~delta%~', ascending=False)
             if d.iloc[0]['~delta~'] <= 0 or d.iloc[-1]['~delta~'] >= 0:
                 log.info("stop because [" + str(d.iloc[0]['~delta~']) + "," +
                          str(d.iloc[-1]['~delta~']) + "]")
@@ -302,6 +302,10 @@ class Optimize(object):
             # nor are they derived from the weights from below *HOWEVER* in case of a failure
             # the weights need to be as close as possible from the target weight to limit
             # the negative impact
+
+            # Subtract a suitable fraction from the weight from each device.
+            # Ensure we don't add(subtract) to overweight(underweight) device.
+            # And no need to subtract or add to balanced devices.
             up = 0
             down = len(d)-1
             pos1 = 0
@@ -314,12 +318,13 @@ class Optimize(object):
                 if(pos1 == 0 and pos2 == len(d)-1):
                     continue
                 else:
+                    # There cannot be overfilling without underfilling
                     print "This case should not occur"
+                    
             if (pos1 > (len(d)-1-pos2)):
                 while up < pos1:
-                    shift1 = int(id2weight[d.iloc[up]['~id~']] *  abs(d.iloc[up]['~delta%~']))
-                    shift2 = int(id2weight[d.iloc[down]['~id~']] * abs(d.iloc[down]['~delta%~']))
-                    shift = min(shift1, shift2)
+                    shift = min(int(id2weight[d.iloc[up]['~id~']] *  abs(d.iloc[up]['~delta%~'])),
+                                int(id2weight[d.iloc[down]['~id~']] * abs(d.iloc[down]['~delta%~'])))
                     log.debug("shift from " + str(d.iloc[0]['~id~']) +
                               " to " + str(d.iloc[-1]['~id~']))
                     id2weight[d.iloc[up]['~id~']] -= shift
@@ -330,9 +335,8 @@ class Optimize(object):
                         down = len(d)-1
             else:
                 while down > pos2:
-                    shift1 = int(id2weight[d.iloc[up]['~id~']] *  abs(d.iloc[up]['~delta%~']))
-                    shift2 = int(id2weight[d.iloc[down]['~id~']] * abs(d.iloc[down]['~delta%~']))
-                    shift = min(shift1, shift2)
+                    shift = min(int(id2weight[d.iloc[up]['~id~']] *  abs(d.iloc[up]['~delta%~'])),
+                                int(id2weight[d.iloc[down]['~id~']] * abs(d.iloc[down]['~delta%~'])))
                     log.debug("shift from " + str(d.iloc[0]['~id~']) +
                               " to " + str(d.iloc[-1]['~id~']))
                     id2weight[d.iloc[up]['~id~']] -= shift
