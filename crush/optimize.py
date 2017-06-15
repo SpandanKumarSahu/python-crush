@@ -292,7 +292,7 @@ class Optimize(object):
                     log.info("stopped because moved " + str(from_to_count) +
                              " --step " + str(self.args.step))
                     break
-            d = d.sort_values('~delta~', ascending=False)
+            d = d.sort_values('~delta%~', ascending=False)
             if d.iloc[0]['~delta~'] <= 0 or d.iloc[-1]['~delta~'] >= 0:
                 log.info("stop because [" + str(d.iloc[0]['~delta~']) + "," +
                          str(d.iloc[-1]['~delta~']) + "]")
@@ -302,14 +302,49 @@ class Optimize(object):
             # nor are they derived from the weights from below *HOWEVER* in case of a failure
             # the weights need to be as close as possible from the target weight to limit
             # the negative impact
-            shift = int(id2weight[d.iloc[0]['~id~']] * min(0.01, abs(d.iloc[0]['~delta%~'])))
-            if shift <= 0:
-                log.info("stop because shift is zero")
-                break
-            log.debug("shift from " + str(d.iloc[0]['~id~']) +
-                      " to " + str(d.iloc[-1]['~id~']))
-            id2weight[d.iloc[0]['~id~']] -= shift
-            id2weight[d.iloc[-1]['~id~']] += shift
+
+            # Subtract a suitable fraction from the weight from each device.
+            # Ensure we don't add(subtract) to overweight(underweight) device.
+            # And no need to subtract or add to balanced devices.
+            up = 0
+            down = len(d)-1
+            pos1 = 0
+            while d.iloc[pos1]['~delta~']>0:
+                pos1 += 1
+            pos2 = len(d)-1
+            while d.iloc[pos2]['~delta~']<0:
+                pos2 -= 1
+            if (pos1 == 0 or pos2 == len(d)-1):
+                if(pos1 == 0 and pos2 == len(d)-1):
+                    continue
+                else:
+                    # There cannot be overfilling without underfilling
+                    print "This case should not occur"
+                    
+            if (pos1 > (len(d)-1-pos2)):
+                while up < pos1:
+                    shift = min(int(id2weight[d.iloc[up]['~id~']] *  abs(d.iloc[up]['~delta%~'])),
+                                int(id2weight[d.iloc[down]['~id~']] * abs(d.iloc[down]['~delta%~'])))
+                    log.debug("shift from " + str(d.iloc[0]['~id~']) +
+                              " to " + str(d.iloc[-1]['~id~']))
+                    id2weight[d.iloc[up]['~id~']] -= shift
+                    id2weight[d.iloc[down]['~id~']] += shift
+                    up += 1
+                    down -= 1
+                    if(down == pos2):
+                        down = len(d)-1
+            else:
+                while down > pos2:
+                    shift = min(int(id2weight[d.iloc[up]['~id~']] *  abs(d.iloc[up]['~delta%~'])),
+                                int(id2weight[d.iloc[down]['~id~']] * abs(d.iloc[down]['~delta%~'])))
+                    log.debug("shift from " + str(d.iloc[0]['~id~']) +
+                              " to " + str(d.iloc[-1]['~id~']))
+                    id2weight[d.iloc[up]['~id~']] -= shift
+                    id2weight[d.iloc[down]['~id~']] += shift
+                    up += 1
+                    down -= 1
+                    if(up == pos1):
+                        up = 0
 
         choose_arg['weight_set'][choose_arg_position] = best_weights
         c.parse(crushmap)
