@@ -292,7 +292,7 @@ class Optimize(object):
                     log.info("stopped because moved " + str(from_to_count) +
                              " --step " + str(self.args.step))
                     break
-            d = d.sort_values('~delta~', ascending=False)
+            d = d.sort_values('~delta%~', ascending=False)
             if d.iloc[0]['~delta~'] <= 0 or d.iloc[-1]['~delta~'] >= 0:
                 log.info("stop because [" + str(d.iloc[0]['~delta~']) + "," +
                          str(d.iloc[-1]['~delta~']) + "]")
@@ -301,16 +301,19 @@ class Optimize(object):
             # are only used locally for placement and have no impact on the upper weights
             # nor are they derived from the weights from below *HOWEVER* in case of a failure
             # the weights need to be as close as possible from the target weight to limit
-            # the negative impact            
-            for i in range(int(len(d)/2)):
-                shift = min(int(id2weight[d.iloc[i]['~id~']] * abs(d.iloc[i]['~delta%~'])),
+            # the negative impact
+            i = 0
+            while( d.iloc[i]['~delta~'] > 0):
+                shift = min(int(id2weight[d.iloc[i]['~id~']] *  abs(d.iloc[i]['~delta%~'])),
                             int(id2weight[d.iloc[-(i+1)]['~id~']] * abs(d.iloc[-(i+1)]['~delta%~'])))
-                if (shift == 0):
-                    break
-                log.debug("shift from " + str(d.iloc[i]['~id~']) +
-                            " to " + str(d.iloc[-(i+1)]['~id~']))
+                if shift == 0:
+                    shift = max(int(id2weight[d.iloc[i]['~id~']] *  abs(d.iloc[i]['~delta%~'])),
+                                int(id2weight[d.iloc[-(i+1)]['~id~']] * abs(d.iloc[-(i+1)]['~delta%~'])))
+                log.debug("shift from " + str(d.iloc[0]['~id~']) +
+                          " to " + str(d.iloc[-1]['~id~']))
                 id2weight[d.iloc[i]['~id~']] -= shift
                 id2weight[d.iloc[-(i+1)]['~id~']] += shift
+                i += 1
             
 
         choose_arg['weight_set'][choose_arg_position] = best_weights
